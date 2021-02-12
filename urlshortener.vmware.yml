@@ -1,0 +1,49 @@
+# Sample configuration file for VMware Guest dynamic Inventory
+# Use Category and it's relation with Tag
+# https://docs.ansible.com/ansible/latest/collections/community/vmware/vmware_vm_inventory_inventory.html
+
+# User environment variables to set VMware hostname and credentials
+# VMWARE_HOST=''
+# VMWARE_USERNAME=''
+# VMWARE_PASSWORD=''
+# VMWARE_VALIDATE_CERTS=False
+
+plugin: community.vmware.vmware_vm_inventory
+strict: False
+validate_certs: False
+# Requires 'vSphere Automation SDK' library to be installed on the given controller machine.
+with_tags: true
+# hostnames can not use composed variables like domain_name, only variables from properties.
+hostnames:
+  - "config.name"
+properties:
+  - 'config.name'
+  - 'config.guestId'
+  - 'guest.ipAddress'
+  - 'summary.runtime.powerState' 
+resources:
+  - datacenter:
+    - vdc_rdu_compute
+    resources:
+      - compute_resource:
+        - rdu1_compute
+compose:
+  ansible_host: 'guest.ipAddress'
+#  domain_name: "tag_category['domain'] | join('')"
+keyed_groups:
+  - key: "['urlshortener' ] | product(tag_category['environment']) | map('join', '_') | list"
+    separator: ""
+    prefix: ""
+  - key: "['urlshortener'] | product(['rdu']) | map('join', '_') | list"
+    separator: ""
+    prefix: ""
+  - key: "tag_category['middleware'] | product(tag_category['domain']) | map('join', '_') | product(tag_category['os']) | map('join', '_') | list"
+  #product(tag_category['OS']) | product(tag_category['domain']) | map('join', '_') | list"
+    separator: ""
+    prefix: ""
+filters:
+  - tag_category['rdu-application'] is defined
+  - tag_category['environment'] is defined
+  - tag_category['domain'] is defined
+  - "'urlshortener' in tags"
+  - summary.runtime.powerState == "poweredOn"
